@@ -56,43 +56,6 @@ class Zillow(object):
     
     print(l)
 
-
-
-    #df = pd.read_csv("the file that I webscraped from Zillow")
-
-    # def parse_property(data: dict) -> dict:
-    #     """parse zillow property"""
-    #     # zillow property data is massive, let's take a look just
-    #     # at the basic information to keep this tutorial brief:
-    #     parsed = {
-    #         "address": data["address"],
-    #         "description": data["description"],
-    #         "photos": [photo["url"] for photo in data["galleryPhotos"]],
-    #         "zipcode": data["zipcode"],
-    #         "phone": data["buildingPhoneNumber"],
-    #         "name": data["buildingName"],
-    #         # floor plans include price details, availability etc.
-    #         "floor_plans": data["floorPlans"],
-    #     }
-    #     return parsed
-
-
-    # BASE_HEADERS = {
-    #     "accept-language": "en-US,en;q=0.9",
-    #     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36",
-    #     "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-    #     "accept-language": "en-US;en;q=0.9",
-    #     "accept-encoding": "gzip, deflate, br",
-    # }
-
-
-    # url = "https://www.zillow.com/homedetails/22-Spangenberg-Ln-Somerset-NJ-08873/121883448_zpid/"
-    # with httpx.Client(http2=True, headers=BASE_HEADERS, follow_redirects=True) as client:
-    #     resp = client.get(url)
-    # sel = Selector(text=resp.text)
-    # data = json.loads(sel.css("script#__NEXT_DATA__::text").get())
-    # print(parse_property(data))
-
     # TODO 2: Model the data. Features to predict final sold price include initial market price, neighborhood, time of year of sale,
             # bed and baths, age of house, house dimensions.
         
