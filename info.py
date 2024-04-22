@@ -19,41 +19,27 @@ import lxml as lxml
 
 class Zillow(object):
     # make region of houses user input: https://www.zillow.com/<city-state>/?searchQueryState=%7B"
-    url = "https://www.zillow.com/ithaca-ny/?searchQueryState=%7B"
+    url = "https://www.zillow.com/homedetails/926-Hector-St-Ithaca-NY-14850/215988482_zpid/"
     data = {}
+
     df = pd.DataFrame(columns=["price", "area", "address"])
     l = list()
-    req_headers = {'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-            'accept-encoding': 'gzip, deflate, br',
-            'accept-language': 'en-US,en;q=0.8',
-            'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/6.0'
-            }
+    req_headers = {
+    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'accept-encoding': 'gzip, deflate, br',
+    'accept-language': 'en-US,en;q=0.8',
+    'upgrade-insecure-requests': '1',
+    'user-agent': 'Mozilla/6.0'
+    }   
     r = requests.get(url, headers = req_headers)
-
-    soup = BeautifulSoup(r.text, "html.parser")
-    properties = soup.find_all("div", class_ = "StyledPropertyCardDataWrapper-c11n-8-100-7__sc-hfbvv9-0 bmhhEb property-card-data")
-
-    for i in range (0, len(properties)):
-        # price column
-        try:
-            data["price"] = properties[i].find("div", {"class" : "StyledPropertyCardDataArea-c11n-8-100-7__sc-10i1r6-0 imqyAK"}).text
-        except:
-            data["price"] = None
-        # area
-        try:
-            data["area"] = properties[i].find("div", {"class" : "StyledPropertyCardDataArea-c11n-8-100-7__sc-10i1r6-0 eObjGE"}).text
-        except:
-            data["area"] = None
-        # address
-        try:
-            data["address"] = properties[i].find("a", {"class" : "StyledPropertyCardDataArea-c11n-8-100-7__sc-10i1r6-0 izzuNb property-card-link"}).text
-        except:
-            data["address"] = None
-        l.append(data)
-        # find a way to save dictionary data as a dataframe
-        df = pd.DataFrame(data)
+    with open("page.html", mode = "wb") as f:
+        f.write(r.content)
+    soup = BeautifulSoup(r.text, "lxml")
+    properties = soup.find_all(lambda t: t.has_attr("href"))
+    for i in range(0, len(properties)):
+        l.append(properties[i]["href"]) if ("homedetails" in properties[i]["href"]) else None
     
+    # if len(l) = 1, then user inputted link
     print(l)
 
     # TODO 2: Model the data. Features to predict final sold price include initial market price, neighborhood, time of year of sale,
