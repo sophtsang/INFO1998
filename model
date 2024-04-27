@@ -6,12 +6,9 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt 
 
 class Model(object): 
-    def linearModel(self, zipcode, yearBuilt, lotArea, df1): 
-        df = df1.copy()
-        df = df[['zipcode', 'year built', 'lot area (acres)', 'sold price']]
-        df = df.astype("int64")
+    def linearModel(self, zipcode, yearBuilt, lotArea, df): 
         features = df[['zipcode', 'year built', 'lot area (acres)']] 
-        target = df['sold price'] 
+        target = df[['price']] 
         x_train, x_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
         model = LinearRegression() 
         model.fit(x_train, y_train) 
@@ -22,3 +19,4 @@ class Model(object):
         
         values = [predicted, trainScore, validation] 
         return values 
+        
