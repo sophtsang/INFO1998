@@ -4,9 +4,10 @@ import pandas as pd
 
 class Zillow(object):
     ws = WebScrape()
-    results = ws.scrape(url = "https://www.zillow.com/new-haven-ct/")
+    # Create dataframe with data of sold houses in same region that user inputted url: target = price[0], percent change = rate of price increase
+    results = ws.scrape(url = "https://www.zillow.com/somerset-county-nj/sold/?searchQueryState=%7B%22isMapVisible%22%3Atrue%2C%22mapBounds%22%3A%7B%22north%22%3A40.758005%2C%22south%22%3A40.374397%2C%22east%22%3A-74.401839%2C%22west%22%3A-74.797841%7D%2C%22filterState%22%3A%7B%22sort%22%3A%7B%22value%22%3A%22globalrelevanceex%22%7D%2C%22fsba%22%3A%7B%22value%22%3Afalse%7D%2C%22fsbo%22%3A%7B%22value%22%3Afalse%7D%2C%22nc%22%3A%7B%22value%22%3Afalse%7D%2C%22cmsn%22%3A%7B%22value%22%3Afalse%7D%2C%22auc%22%3A%7B%22value%22%3Afalse%7D%2C%22fore%22%3A%7B%22value%22%3Afalse%7D%2C%22rs%22%3A%7B%22value%22%3Atrue%7D%7D%2C%22isListVisible%22%3Atrue%2C%22regionSelection%22%3A%5B%7B%22regionId%22%3A2552%2C%22regionType%22%3A4%7D%5D%2C%22pagination%22%3A%7B%7D%7D")
     df = ws.getDataFrame(results)
-    print(df)
+    df.to_csv('data.csv')
 
 
 if __name__ == 'info':

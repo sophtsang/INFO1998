@@ -72,15 +72,23 @@ class WebScrape(object):
 
     ###
     def getDataFrame(self, results):
-        df = pd.DataFrame(columns=["city", "state", "home status", "street address", "bedrooms", "bathrooms", "price", "rate of price change", 
-                                "year built", "zipcode", "county", "home type", "monthly HOA", "zestimate", 
-                                "nearby schools", "tax paid", "rate of tax change", "time on Zillow", "page view count", "favorite count",
-                                "mortgage rate", "last sold price", "url", "lot area (acres)"])
+        df = pd.DataFrame(columns=["city", "state", "home status", "street address", "bedrooms", "bathrooms", "sold price", "rate of price change", 
+                                   "sale price", "year built", "zipcode", "county", "home type", "monthly HOA", "zestimate", 
+                                   "nearby schools", "tax paid", "rate of tax change", "time on Zillow", "page view count", "favorite count",
+                                   "mortgage rate", "last sold price", "url", "lot area (acres)", "sqft"])
 
         for dict in results:
             schools = [school.get("name") for school in dict.get("schools")]
             rating = [rate.get("rating") for rate in dict.get("schools")]
             nearby_schools = [{schools[n] : rating[n]} for n in range(0, len(schools))]
+            try:
+                price_sold = dict.get("priceHistory")[0].get("price")
+            except:
+                price_sold = None
+            try:
+                price_sale = dict.get("priceHistory")[1].get("price")
+            except:
+                price_sale = None
             try: 
                 tax_paid = dict.get("taxHistory")[0].get("taxPaid")
             except: 
@@ -95,12 +103,13 @@ class WebScrape(object):
                 price_inc = None
 
             df.loc[len(df.index)] = [dict.get("city"), dict.get("state"), dict.get("homeStatus"), dict.get("address").get("streetAddress"), 
-                                    dict.get("bedrooms"), dict.get("bathrooms"), dict.get("price"), price_inc,
+                                    dict.get("bedrooms"), dict.get("bathrooms"), price_sold, price_inc, price_sale,
                                     dict.get("yearBuilt"), dict.get("zipcode"), dict.get("county"), dict.get("homeType"), dict.get("monthlyHoaFee"),
                                     dict.get("zestimate"), nearby_schools, tax_paid, tax_inc, dict.get("timeOnZillow"), dict.get("pageViewCount"),
                                     dict.get("favoriteCount"), dict.get("mortgageRates").get("thirtyYearFixedRate"), dict.get("lastSoldPrice"),
-                                    "zillow.com" + dict.get("hdpUrl"), dict.get("lotAreaValue")]
-
+                                    "zillow.com" + dict.get("hdpUrl"), dict.get("lotAreaValue"), dict.get("adTargets").get("sqft")]
+            
         return df
+        
 
 
