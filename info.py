@@ -52,6 +52,11 @@ class WebScrape(object):
         
         return self.results
     
+    def fromJson(self, source):
+        f = open(source)
+        data = json.load(f)
+        return data
+    
     ###
     def target(self, n):
             r = requests.get(self.links[n], headers = self.req_headers)
