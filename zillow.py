@@ -9,6 +9,9 @@ class Zillow(object):
     df = ws.getDataFrame(results)
     df.to_csv('data.csv')
 
+    model = Model() 
+    values = linearModel(self, zipcode, yearBuilt, lotArea, df)   #TODO: fill INNNNNNNNN! 
+    print('Linear Regression:' + values) 
 
 if __name__ == 'info':
     Zillow()
