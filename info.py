@@ -1,13 +1,10 @@
 import json
 import requests
 from bs4 import BeautifulSoup
-# import httpx
-# import numpy as np
 import pandas as pd
 import lxml as lxml
-# from sklearn.model_selection import train_test_split
-# from sklearn.neighbors import KNeighborsClassifier
-# from parsel import Selector
+from parsel import Selector
+import threading
 
 # Model that predicts % difference (increase) of market price to accepted offer: predicts how much over
 # the market price you have to offer to guarantee an accepted offer in n neighborhood.
@@ -17,58 +14,93 @@ import lxml as lxml
 #         Maybe eventually apply to Cornell housing.
 #         RESOURCES: https://scrapfly.io/blog/how-to-scrape-zillow/#scraping-properties
 
+### WebScrape class provides live webscraping of a search page on Zillow and outputs a DataFrame containing data on the first 40 houses
+### displayed on the search page.
 class WebScrape(object):
-    # make region of houses user input: https://www.zillow.com/<city-state>/?searchQueryState=%7B"
-    #url = "https://www.zillow.com/somerset-county-nj/?searchQueryState=%7B%22isMapVisible%22%3Afalse%2C%22mapBounds%22%3A%7B%22north%22%3A41.0363502362281%2C%22south%22%3A40.09327930935458%2C%22east%22%3A-74.23866446289063%2C%22west%22%3A-74.96101553710938%7D%2C%22filterState%22%3A%7B%22sort%22%3A%7B%22value%22%3A%22globalrelevanceex%22%7D%2C%22ah%22%3A%7B%22value%22%3Atrue%7D%2C%22price%22%3A%7B%22max%22%3A650000%2C%22min%22%3A500000%7D%2C%22mp%22%3A%7B%22max%22%3A3461%2C%22min%22%3A2662%7D%7D%2C%22isListVisible%22%3Atrue%2C%22mapZoom%22%3A9%2C%22regionSelection%22%3A%5B%7B%22regionId%22%3A2552%2C%22regionType%22%3A4%7D%5D%2C%22pagination%22%3A%7B%7D%7D"
+    links = list()
+    results = list()
+    pool = list()
+    req_headers = {
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'accept-encoding': 'gzip, deflate, br',
+        'accept-language': 'en-US,en;q=0.8',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Chrome/124.0.6367.60'
+    }   
+
+    ###
     def scrape(self, url):
-        df = pd.DataFrame(columns=["price", "beds and baths", "area", "address"])
-        links = list()
-        req_headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-            'accept-encoding': 'gzip, deflate, br',
-            'accept-language': 'en-US,en;q=0.8',
-            'upgrade-insecure-requests': '1',
-            'user-agent': 'Mozilla/6.0'
-        }   
-        r = requests.get(url, headers = req_headers)
-        with open("page.html", mode = "wb") as f:
-            f.write(r.content)
-        soup = BeautifulSoup(r.text, "lxml")
-        properties = soup.find_all(lambda t: t.has_attr("href"))
-        for i in range(0, len(properties)):
-            links.append(properties[i]["href"]) if ("homedetails" in properties[i]["href"]) and not properties[i]["href"] in links else None
+        r = requests.get(url, headers = self.req_headers)
+        print(r.status_code)
+        selector = Selector(r.text)
+        data = selector.css("script#__NEXT_DATA__::text").get()
+        data = data.replace("{", "").replace("}", "").replace("[", "").replace("]", "").replace(",", "").split('"')
+        for i in range(0, len(data)):
+            self.links.append(data[i]) if ("homedetails" in data[i]) and not data[i] in self.links else None
+
+
+        for n in range(0, len(self.links)):
+            self.pool.append(threading.Thread(target = self.target, args = (n,)))
+            self.pool[-1].start()
+
+        # wait for all threads in pool to finish before next line runs
+        for thread in self.pool: thread.join()
 
         # if len(l) = 1, then user inputted link
-        for n in range(0, len(links)):
-            r = requests.get(links[n], headers = req_headers)
-            soup = BeautifulSoup(r.text, "lxml")
-            price = soup.find("span", attrs={"data-testid" : "price"}).text
+        with open("data.json", "w") as f:
+            json.dump(self.results, f)
+        
+        return self.results
+    
+    ###
+    def target(self, n):
+            r = requests.get(self.links[n], headers = self.req_headers)
+            selector = Selector(r.text)
+            data = selector.css("script#__NEXT_DATA__::text").get()
+            if data:
+                data = json.loads(data)
+                property_data = json.loads(data["props"]["pageProps"]["componentProps"]["gdpClientCache"])
+                property_data = property_data[list(property_data)[0]]['property']
+            else:
+                # Option 2: other times it's in Apollo cache
+                data = selector.css("script#hdpApolloPreloadedData::text").get()
+                data = json.loads(json.loads(data)["apiCache"])
+                property_data = next(
+                    v["property"] for k, v in data.items() if "ForSale" in k
+                )
+            self.results.append(property_data)
+
+    ###
+    def getDataFrame(self, results):
+        df = pd.DataFrame(columns=["city", "state", "home status", "street address", "bedrooms", "bathrooms", "price", "rate of price change", 
+                                "year built", "zipcode", "county", "home type", "monthly HOA", "zestimate", 
+                                "nearby schools", "tax paid", "rate of tax change", "time on Zillow", "page view count", "favorite count",
+                                "mortgage rate", "last sold price", "url", "lot area (acres)"])
+
+        for dict in results:
+            schools = [school.get("name") for school in dict.get("schools")]
+            rating = [rate.get("rating") for rate in dict.get("schools")]
+            nearby_schools = [{schools[n] : rating[n]} for n in range(0, len(schools))]
+            try: 
+                tax_paid = dict.get("taxHistory")[0].get("taxPaid")
+            except: 
+                tax_paid = None
             try:
-                bed = soup.find("div", attrs = {"data-testid" : "bed-bath-sqft-facts"}).text.split(",")[0]
+                tax_inc = dict.get("taxHistory")[0].get("taxIncreaseRate")
             except:
-                bed = "N/A"
-            try:
-                area = soup.find("div", attrs = {"data-testid" : "bed-bath-sqft-facts"}).text.split(",")[1] 
+                tax_inc = None
+            try :
+                price_inc = dict.get("priceHistory")[0].get("priceChangeRate")
             except:
-                area = "N/A"
-            address = soup.find("div", attrs={"class" : "styles__AddressWrapper-fshdp-8-100-2__sc-13x5vko-0 jrtioM"}).text
-            df.loc[len(df.index)] = [price, bed, area, address] 
+                price_inc = None
+
+            df.loc[len(df.index)] = [dict.get("city"), dict.get("state"), dict.get("homeStatus"), dict.get("address").get("streetAddress"), 
+                                    dict.get("bedrooms"), dict.get("bathrooms"), dict.get("price"), price_inc,
+                                    dict.get("yearBuilt"), dict.get("zipcode"), dict.get("county"), dict.get("homeType"), dict.get("monthlyHoaFee"),
+                                    dict.get("zestimate"), nearby_schools, tax_paid, tax_inc, dict.get("timeOnZillow"), dict.get("pageViewCount"),
+                                    dict.get("favoriteCount"), dict.get("mortgageRates").get("thirtyYearFixedRate"), dict.get("lastSoldPrice"),
+                                    "zillow.com" + dict.get("hdpUrl"), dict.get("lotAreaValue")]
 
         return df
 
-    # TODO 2: Model the data. Features to predict final sold price include initial market price, neighborhood, time of year of sale,
-            # bed and baths, age of house, house dimensions.
-        
-    # Correlation method: returns n columns of the given dataframe that contain the highest correlation with target column.
-    # Requires that target column not be returned as one of the returned features.
-    #
-    # @param String target: target column to be predicted (housing final price)
-    # @param int n: number of features to be returned
 
-    # def correlate(self, target, n):
-    #     matrix = self.df.corr()
-    #     features = abs((matrix.loc[target])-1).sort_values().tail(n)
-    #     return self.df[features.keys()]
-
-    # TODO 3: User interface. Takes in a url to the user's listing of choice, webscrapes the page, runs data through a model,
-    #         and predicts final selling price that guarantees offer acceptance.
