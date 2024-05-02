@@ -11,7 +11,6 @@ class Zillow(object):
     df = ws.getDataFrame(results)
     df.to_csv('data.csv')
 
-    print(type(df["lot area (acres)"]))
     model = Model() 
     values = model.linearModel(7000, 380000, 3, df)   #TODO: fill INNNNNNNNN! 
     print('Linear Regression Model: prediction of selling price is %.2f, with a training score of %.2f and a validation score of %.2f' % (values[0], values[1], values[2]))
